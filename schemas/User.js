@@ -8,7 +8,10 @@ const userSchema = new mongoose.Schema({
         unique: true
     },
     password: String,
-    decks: Array,
+    decks: {
+        type: Object,
+        default: { northern: {type : Array}, nilfgaardian: {type : Array}, scoiatael: {type : Array}, monster: {type : Array} }
+    },
     created_at: { type: Date, default: Date.now },
     updated_at: { type: Date, default: Date.now }
 })

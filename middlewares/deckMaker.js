@@ -1,13 +1,17 @@
-const verifyCards= (req, res, next) => {
-    const {userCards, faction} = req.body
-    if (faction === 'northern'){
-        const northern = deck.northern.data
-        userCards.forEach(card => {
-            if(northern.indexof(card.name)===-1){
-                return res.status(400).json({error:'invalid cards'})
-            }
-        })
+const deck = require('../assets/data/deck')
+const verifyCards = (req, res, next) => {
+    const { userCards, faction } = req.body
+    let valid = true
+    userCards.map((i) => {
+        if (deck[faction].data.indexOf(i)===-1) {
+            console.log('not '+faction)
+            valid = false
+        }
+    })
+    if (!valid){
+        res.status(401).json({ error: 'Invalid cards' })
+    }else{
         next()
     }
 }
-module.exports =verifyCards;
+module.exports = verifyCards;
