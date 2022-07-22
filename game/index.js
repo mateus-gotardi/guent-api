@@ -2,8 +2,60 @@ const abilities = require('../assets/data/abilities')
 
 export default function createGame(room) {
     const state = {
-        player1: { id, name, score, rounds, active: false, table: [], redraws: 2, faction },
-        player2: { id, name, score, rounds, active: false, table: [], redraws: 2, faction },
+        modifiers: {
+            weather_fog: false,
+            weather_rain: false,
+            weather_frost: false
+        },
+        weather_cards: [],
+        player1: {
+            id,
+            name,
+            score: () => {
+                let total = 0
+                if (table.length > 0) {
+                    this.table.map((i) => {
+                        total += i.power
+                    })
+                }
+                return (total)
+            },
+            rounds,
+            active: false,
+            table: [],
+            redraws: 2,
+            faction,
+            modifiers: {//affected cards are staged for later
+                active: false,
+                morale_boost: [],
+                tight_bond: [],
+                command_horn: []
+            }
+        },
+        player2: {
+            id,
+            name,
+            score: () => {
+                let total = 0
+                if (table.length > 0) {
+                    this.table.map((i) => {
+                        total += i.power
+                    })
+                }
+                return (total)
+            },
+            rounds,
+            active: false,
+            table: [],
+            redraws: 2,
+            faction,
+            modifiers: {
+                active: false,
+                morale_boost: [],
+                tight_bond: [],
+                command_horn: []
+            }
+        },
         turn,
         room: room,
         winner: null,
@@ -66,6 +118,9 @@ export default function createGame(room) {
     function shuffleCards(command) {
         const playerId = command.playerId
         const faction = command.faction
+        let number = 10
+        let cards = []
+        let deck = []
         const verifyLength = (deck) => {
             let units = 0
             let special = 0
@@ -85,32 +140,53 @@ export default function createGame(room) {
                 return true
             }
         }
-        let cards = []
-        let deck = []
+        const verifyScoiatael = (deck, faction)=>{
+            if (faction === 'scoiatael') {
+                let index = deck.indexOf({
+                    name: "Francesca, Daisy of The Valley",
+                    power: 0,
+                    ability: "francesca_leader3",
+                    img: "francesca_daisy",
+                    faction: "scoiatael",
+                    type: 3
+                })
+                if (index >= 0){
+                    number = 11
+                }
+            }
+        }
         switch (playerId) {
             case player1state.id:
                 deck = player1state.decks[faction]
+                verifyScoiatael(deck, faction)
                 if (verifyLength(deck)) {
                     state.player1.faction = faction
-                    for (var i = 0; i < 11; i++) {
+                    for (var i = 0; i < number; i++) {
                         let random = Math.floor(Math.random() * deck.length - 1)
+                        while (deck[random].type === 3) {
+                            random = Math.floor(Math.random() * deck.length - 1)
+                        }
                         cards.push(deck[random])
-                        deck.splice(random, random + 1)
+                        deck.splice(random, 1)
                     }
                     player1state.cards = cards
-                    player1state.decks[faction] = deck
+                    player1state.decks = deck
                 }
                 break;
             case player2state.id:
                 deck = player2state.decks[faction]
+                verifyScoiatael(deck, faction)
                 state.player2.faction = faction
-                for (var i = 0; i < 11; i++) {
+                for (var i = 0; i < number; i++) {
                     let random = Math.floor(Math.random() * deck.length - 1)
+                    while (deck[random].type === 3) {
+                        random = Math.floor(Math.random() * deck.length - 1)
+                    }
                     cards.push(deck[random])
-                    deck.splice(random, random + 1)
+                    deck.splice(random, 1)
                 }
                 player2state.cards = cards
-                player2state.decks[faction] = deck
+                player2state.decks = deck
                 break;
         }
     }
@@ -120,35 +196,33 @@ export default function createGame(room) {
         switch (playerId) {
             case player1state.id:
                 if (state.player1.redraws > 0) {
-                    const faction = state.player1.faction
-                    let deck = player1state.decks[faction]
+                    let deck = player1state.decks
                     let cards = player1state.cards
                     let indexRedraw = cards.indexOf(cardToRedraw)
-                    cards.splice(indexRedraw, indexRedraw + 1)
+                    cards.splice(indexRedraw, 1)
                     player1state.discard.push(cardToRedraw)
                     let random = Math.floor(Math.random() * deck.length - 1)
                     let newCard = deck[random]
-                    deck.splice(random, random + 1)
+                    deck.splice(random, 1)
                     cards.push(newCard)
                     player1state.cards = cards
-                    player1state.decks[faction] = deck
+                    player1state.decks = deck
                     player1state.redraws -= 1
                 }
                 break;
             case player2state.id:
                 if (state.player1.redraws > 0) {
-                    const faction = state.player2.faction
-                    let deck = player2state.decks[faction]
+                    let deck = player2state.decks
                     let cards = player2state.cards
                     let indexRedraw = cards.indexOf(cardToRedraw)
-                    cards.splice(indexRedraw, indexRedraw + 1)
+                    cards.splice(indexRedraw, 1)
                     player2state.discard.push(cardToRedraw)
                     let random = Math.floor(Math.random() * deck.length - 1)
                     let newCard = deck[random]
-                    deck.splice(random, random + 1)
+                    deck.splice(random, 1)
                     cards.push(newCard)
                     player2state.cards = cards
-                    player2state.decks[faction] = deck
+                    player2state.decks = deck
                     player2state.redraws -= 1
                 }
                 break;
@@ -158,23 +232,18 @@ export default function createGame(room) {
     function playCard(command) {
         const playerId = command.playerId
         const cardPlayed = command.cardPlayed
-
+        let cardIndex;
         if (state.turn === playerId) {
             switch (playerId) {
-                case turn:
-                    if (playerId === player1state.id) {
-                        let cardIndex = player1state.hand.indexOf(cardPlayed)
-                        player1state.hand.splice(cardIndex, cardIndex + 1)
-                        state.table.player1.push(cardPlayed)
-                        state.score.player1 += cardPlayed.power
-                    }
-
-                    else if (playerId == player2State.id) {
-                        let cardIndex = player2State.hand.indexOf(cardPlayed)
-                        player2state.hand.splice(cardIndex, cardIndex + 1)
-                        state.table.player2.push(cardPlayed)
-                        state.score.player2 += cardPlayed.power
-                    }
+                case player1state.id:
+                    cardIndex = player1state.cards.indexOf(cardPlayed)
+                    player1state.cards.splice(cardIndex, 1)
+                    state.table.player1.push(cardPlayed)
+                    break;
+                case player2state.id:
+                    cardIndex = player2State.cards.indexOf(cardPlayed)
+                    player2state.cards.splice(cardIndex, 1)
+                    state.table.player2.push(cardPlayed)
                     break;
             }
 
@@ -184,7 +253,8 @@ export default function createGame(room) {
             playerId: playerId,
         })
     }
-    function roundEnd() {
+
+    function roundEnd() {//reduzir o power se tiver morale_boost
         state.table.player1.map((i) => {
             player1state.discard.push(i)
         })

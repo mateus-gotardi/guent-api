@@ -188,7 +188,7 @@ module.exports = {
   },
   "foltest_king_of_temeria": {
     name: "Foltest: King of Temeria",
-    power: -1,
+    power: 0,
     ability: "foltest_leader1",
     img: "foltest_king",
     faction: "northern",
@@ -196,7 +196,7 @@ module.exports = {
   },
   "foltest_lord_commander": {
     name: "Foltest: Lord Commander",
-    power: -1,
+    power: 0,
     ability: "foltest_leader2",
     img: "foltest_commander",
     faction: "northern",
@@ -204,7 +204,7 @@ module.exports = {
   },
   "foltest_siegemaster": {
     name: "Foltest: The Siegemaster",
-    power: -1,
+    power: 0,
     ability: "foltest_leader3",
     img: "foltest_siege",
     faction: "northern",
@@ -212,7 +212,7 @@ module.exports = {
   },
   "foltest_forged": {
     name: "Foltest: The Steel-Forged",
-    power: -1,
+    power: 0,
     ability: "foltest_leader4",
     img: "foltest_forged",
     faction: "northern",
@@ -254,7 +254,7 @@ module.exports = {
 
   "decoy": {
     name: "Decoy",
-    power: -1,
+    power: 0,
     ability: "decoy",
     img: "decoy",
     faction: "neutral",
@@ -262,7 +262,7 @@ module.exports = {
   },
   "scorch": {
     name: "Scorch",
-    power: -1,
+    power: 0,
     ability: "scorch_card",
     img: "scorch",
     faction: "neutral",
@@ -270,7 +270,7 @@ module.exports = {
   },
   "commanders_horn": {
     name: "Commander's Horn",
-    power: -1,
+    power: 0,
     ability: "commanders_horn_card",
     img: "horn",
     faction: "neutral",
@@ -280,7 +280,7 @@ module.exports = {
 
   "impenetrable_fog": {
     name: "Impenetrable Fog",
-    power: -1,
+    power: 0,
     ability: "weather_fog",
     img: "fog",
     faction: "neutral",
@@ -288,7 +288,7 @@ module.exports = {
   },
   "biting_frost": {
     name: "Biting Frost",
-    power: -1,
+    power: 0,
     ability: "weather_frost",
     img: "frost",
     faction: "neutral",
@@ -296,7 +296,7 @@ module.exports = {
   },
   "torrential_rain": {
     name: "Torrential Rain",
-    power: -1,
+    power: 0,
     ability: "weather_rain",
     img: "rain",
     faction: "neutral",
@@ -304,7 +304,7 @@ module.exports = {
   },
   "clear_weather": {
     name: "Clear Weather",
-    power: -1,
+    power: 0,
     ability: "weather_clear",
     img: "clear",
     faction: "neutral",
@@ -338,7 +338,7 @@ module.exports = {
 
   "francesca_pureblood_elf": {
     name: "Francesca, Pureblood Elf",
-    power: -1,
+    power: 0,
     ability: "francesca_leader1",
     img: "francesca_pureblood",
     faction: "scoiatael",
@@ -346,7 +346,7 @@ module.exports = {
   },
   "francesca_the_beautiful": {
     name: "Francesca The Beautiful",
-    power: -1,
+    power: 0,
     ability: "francesca_leader2",
     img: "francesca_beautiful",
     faction: "scoiatael",
@@ -354,7 +354,7 @@ module.exports = {
   },
   "francesca_daisy_of_the_valley": {
     name: "Francesca, Daisy of The Valley",
-    power: -1,
+    power: 0,
     ability: "francesca_leader3",
     img: "francesca_daisy",
     faction: "scoiatael",
@@ -362,7 +362,7 @@ module.exports = {
   },
   "francesca_queen_of_dol_blathanna": {
     name: "Francesca, Queen of Dol Blathanna",
-    power: -1,
+    power: 0,
     ability: "francesca_leader4",
     img: "francesca_queen",
     faction: "scoiatael",
@@ -559,7 +559,7 @@ module.exports = {
 
   "eredin_commander_of_the_red_riders": {
     name: "Eredin, Commander of the Red Riders",
-    power: -1,
+    power: 0,
     ability: "eredin_leader1",
     img: "eredin_commander",
     faction: "monster",
@@ -567,7 +567,7 @@ module.exports = {
   },
   "eredin_bringer_of_death": {
     name: "Eredin, Bringer of Death",
-    power: -1,
+    power: 0,
     ability: "eredin_leader2",
     img: "eredin_bringer",
     faction: "monster",
@@ -575,7 +575,7 @@ module.exports = {
   },
   "eredin_destroyer_of_worlds": {
     name: "Eredin, Destroyer of Worlds",
-    power: -1,
+    power: 0,
     ability: "eredin_leader3",
     img: "eredin_destroyer",
     faction: "monster",
@@ -583,7 +583,7 @@ module.exports = {
   },
   "eredin_king_of_the_wild_hunt": {
     name: "Eredin, King of The Wild Hunt",
-    power: -1,
+    power: 0,
     ability: "eredin_leader4",
     img: "eredin_king",
     faction: "monster",
@@ -877,8 +877,8 @@ module.exports = {
 
   //nilfgaardian
   "emreis_relentless": {
-    name: "Emhyr vas Emreis the Relentless",
-    power: -1,
+    name: "Emhyr vas Emreis: the Relentless",
+    power: 0,
     ability: "emreis_leader4",
     img: "emhyr_relentless",
     faction: "nilfgaardian",
