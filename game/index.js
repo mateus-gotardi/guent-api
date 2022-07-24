@@ -1,294 +1,402 @@
-const abilities = require('../assets/data/abilities')
-
+const abilities = import('../assets/data/abilities')
+const allCards = import('../assets/data/cards')
+const Deck = import('../assets/data/deck')
 export default function createGame(room) {
+    /*
+     const observers = []
+ 
+     function subscribe(observerFunction) {
+         observers.push(observerFunction)
+     }
+ 
+     function notifyAll(command) {
+         for (const observerFunction of observers) {
+             observerFunction(command)
+         }
+     }
+ */
     const state = {
-        modifiers: {
-            weather_fog: false,
-            weather_rain: false,
-            weather_frost: false
-        },
-        weather_cards: [],
-        player1: {
-            id,
-            name,
-            score: () => {
-                let total = 0
-                if (table.length > 0) {
-                    this.table.map((i) => {
-                        total += i.power
-                    })
-                }
-                return (total)
-            },
-            rounds,
-            active: false,
-            table: [],
-            redraws: 2,
-            faction,
-            modifiers: {//affected cards are staged for later
-                active: false,
-                morale_boost: [],
-                tight_bond: [],
-                command_horn: []
-            }
-        },
-        player2: {
-            id,
-            name,
-            score: () => {
-                let total = 0
-                if (table.length > 0) {
-                    this.table.map((i) => {
-                        total += i.power
-                    })
-                }
-                return (total)
-            },
-            rounds,
-            active: false,
-            table: [],
-            redraws: 2,
-            faction,
-            modifiers: {
-                active: false,
-                morale_boost: [],
-                tight_bond: [],
-                command_horn: []
-            }
-        },
+        weather_cards: [], // 0 1 and/or 2
         turn,
         room: room,
         winner: null,
+        playersId: [],
+        error: false
     }
-    const player1state = { id, cards: [], discard, decks }
-    const player2state = { id, cards: [], discard, decks }
-
-    const observers = []
-
-    function subscribe(observerFunction) {
-        observers.push(observerFunction)
-    }
-
-    function notifyAll(command) {
-        for (const observerFunction of observers) {
-            observerFunction(command)
-        }
-    }
-
+    const playerPrivate = {}
     function setState(newState) {
         Object.assign(state, newState)
     }
-
+    function setPlayerPrivate(newPlayerPrivate) {
+        Object.assign(playerPrivate, newPlayerPrivate)
+    }
     function addPlayer(command) {
         const playerId = command.user._id
         const { name, decks } = command.user
-        let success = false
-        if (!player1state.id) {
-            player1state.id = playerId
-            player1state.name = name
-            player1state.score = 0
-            player1state.rounds = 0
-            player1state.active = true
-            player1state.decks = decks
-            success = true
-        } else if (!player2state.id) {
-            player2state.id = playerId
-            player2state.name = name
-            player2state.score = 0
-            player2state.rounds = 0
-            player2state.active = true
-            player2state.decks = decks
-            success = true
+        let newState = state
+        let newPlayerPrivate = playerPrivate
+        if (newState.length < 8) {
+            newState[playerId] = {
+                name: name,
+                active: true,
+                ready: false,
+                score: { total: 0, closeCombat: 0, ranged: 0, siege: 0 },
+                rounds,
+                units: { closeCombat: 0, ranged: 0, siege: 0 },
+                table: [],
+                tableDetails: {},
+                agile: {},
+                discard: [],
+                faction: { faction, leader, availableAbility: true },
+                modifiers: {
+                    morale_boost: [],// example [0,2] corresponds to morale boost for close combat and siege
+                    tight_bond: [],
+                    command_horn: [],
+                }
+            }
+            newState.playersId.push(playerId)
+            newPlayerPrivate[playerId] = { cards: [], decks: decks, redraws: 2 }
+            setState(newState)
+            setPlayerPrivate(newPlayerPrivate)
         }
-        if (success) {
-            notifyAll({
-                type: 'add-player',
-                playerId: playerId,
-            })
-        } else {
-            return ({
-                type: 'error-add-player',
-                playerId: playerId,
-            })
-        }
-
-
     }
+    function verifyScore() {
+        let meleeScore = 0
+        let meleeUnits = 0
+        let rangedScore = 0
+        let rangedUnits = 0
+        let siegeScore = 0
+        let siegeUnits = 0
+        let tableWithScore = {}
+        const hasDuplicates = (array) => {
+            return (new Set(array)).size !== array.length;
+        }
 
+        state.playersId.map((player) => {
+            state[player].table.map((card) => {
+                let completeCard = allCards[card]
+                const tight_bond = () => {
+                    const repeatedValues = hasDuplicates(state[player].table)
+                    if (repeatedValues.includes[card] && completeCard.ability.includes('tight_bond')) {
+                        completeCard.power = completeCard.power * 2
+                        tableWithScore[card] = completeCard
+                    }
+                }
+                if (completeCard.ability.includes('agile')) {
+                    completeCard = state[player].agile[card]
+                }
+                switch (completeCard.type) {
+                    case 0:
+                        meleeUnits += 1
+                        if (completeCard.ability.includes('hero')) {
+                            meleeScore += completeCard.power
+                        } else {
+                            if (state.weather_cards.includes(0)) {
+                                completeCard.power = 1
+                            }
+                            if (state[player].modifiers.tight_bond.includes(0)) {
+                                tight_bond()
+                            } if (state[player].modifiers.morale_boost.includes(0)) {
+                                completeCard.power += 1
+                                meleeScore += completeCard.power
+                            } if (state[player].modifiers.command_horn.includes(0)) {
+                                if (cardPlayed !== 'dandelion') {
+                                    completeCard.power = completeCard.power * 2
+                                }
+                                meleeScore += completeCard.power
+                            }
+                            else {
+                                meleeScore += completeCard.power
+                            }
+                        }
+                        tableWithScore[card] = completeCard
+                        break;
+                    case 1:
+                        rangedUnits += 1
+                        if (completeCard.ability.includes('hero')) {
+                            rangedScore += completeCard.power
+                        } else {
+                            if (state[player].modifiers.tight_bond.includes(1)) {
+                                tight_bond()
+                            } else if (state[player].modifiers.morale_boost.includes(1)) {
+                                completeCard.power += 1
+                                rangedScore += completeCard.power
+                            } else if (state[player].modifiers.command_horn.includes(1)) {
+                                completeCard.power = completeCard.power * 2
+                                rangedScore += completeCard.power
+                            }
+                            else {
+                                rangedScore += completeCard.power
+                            }
+                        }
+                        tableWithScore[card] = completeCard
+                        break;
+                    case 2:
+                        siegeUnits += 1
+                        if (completeCard.ability.includes('hero')) {
+                            siegeScore += completeCard.power
+                        } else {
+                            if (state[player].modifiers.tight_bond.includes(2)) {
+                                tight_bond()
+                            } else if (state[player].modifiers.morale_boost.includes(2)) {
+                                completeCard.power += 1
+                                siegeScore += completeCard.power
+                            } else if (state[player].modifiers.command_horn.includes(2)) {
+                                completeCard.power = completeCard.power * 2
+                                siegeScore += completeCard.power
+                            }
+                            else {
+                                siegeScore += completeCard.power
+                            }
+                        }
+                        tableWithScore[card] = completeCard
+                        break;
+                }
+            })
+            state[player].tableDetails = tableWithScore
+            state[player].score = {
+                total: meleeScore + rangedScore + siegeScore,
+                closeCombat: meleeScore, ranged: rangedScore, siege: siegeScore
+            }
+            state[player].units = { closeCombat: meleeUnits, ranged: rangedUnits, siege: siegeUnits }
+        })
+    }
     function shuffleCards(command) {
         const playerId = command.playerId
+        const opponentPlayerId = state.playersId.find(element => element != playerId)
         const faction = command.faction
-        let number = 10
-        let cards = []
-        let deck = []
-        const verifyLength = (deck) => {
-            let units = 0
-            let special = 0
-            let leader = 0
-            deck.map((card) => {
+        let startCards = 10
+        let rawDeck = playerPrivate[playerId].decks[faction]
+        let handCards = []
+        const verifyDeck = (deck) => {
+            let numberOfUnits = 0
+            let numberOfSpecial = 0
+            let numberOfLeader = 0
+            let leader
+            let count = 0
+            let newDeck = deck
+            let error = false
+            deck.map((c => {
+                if (!Deck[faction].includes(c)) {
+                    error = true
+                }
+                let card = allCards[c]
                 if (card.type === 0 || card.type === 1 || card.type === 2) {
-                    units += 1
+                    numberOfUnits += 1
                 } else if (card.type === 3) {
-                    leader += 1
+                    numberOfLeader += 1
+                    leader = c
+                    newDeck.splice(count, 1)
                 } else if (card.type === 4 || card.type === 5) {
-                    special += 1
+                    numberOfSpecial += 1
+                } else {
+                    error = true
                 }
-            })
-            if (units < 22 || leader !== 1 || special > 10) {
-                return false
+                count += 1
+            }))
+            if (error) {
+                return ({ error: 'invalid cards in deck' })
+            }
+            else if (numberOfUnits < 22 || numberOfLeader !== 1 || numberOfSpecial > 10) {
+                return ({ error: 'invalid number of cards' })
             } else {
-                return true
+                return ({ leader, finalDeck: newDeck })
             }
         }
-        const verifyScoiatael = (deck, faction)=>{
-            if (faction === 'scoiatael') {
-                let index = deck.indexOf({
-                    name: "Francesca, Daisy of The Valley",
-                    power: 0,
-                    ability: "francesca_leader3",
-                    img: "francesca_daisy",
-                    faction: "scoiatael",
-                    type: 3
-                })
-                if (index >= 0){
-                    number = 11
-                }
+        let { leader, finalDeck } = verifyDeck(rawDeck)
+        if (leader && finalDeck) {
+            verifyLeaderAbility(leader)
+            for (var i = 0; i < startCards; i++) {
+                let random = Math.floor(Math.random() * deck.length - 1)
+                handCards.push = finalDeck[random]
+                finalDeck.splice(random, 1)
             }
+            state[playerId].faction.faction = faction
+            state[playerId].faction.leader = leader
+            playerPrivate[playerId].decks = finalDeck
+            playerPrivate[playerId].cards = handCards
         }
-        switch (playerId) {
-            case player1state.id:
-                deck = player1state.decks[faction]
-                verifyScoiatael(deck, faction)
-                if (verifyLength(deck)) {
-                    state.player1.faction = faction
-                    for (var i = 0; i < number; i++) {
-                        let random = Math.floor(Math.random() * deck.length - 1)
-                        while (deck[random].type === 3) {
-                            random = Math.floor(Math.random() * deck.length - 1)
-                        }
-                        cards.push(deck[random])
-                        deck.splice(random, 1)
-                    }
-                    player1state.cards = cards
-                    player1state.decks = deck
-                }
-                break;
-            case player2state.id:
-                deck = player2state.decks[faction]
-                verifyScoiatael(deck, faction)
-                state.player2.faction = faction
-                for (var i = 0; i < number; i++) {
-                    let random = Math.floor(Math.random() * deck.length - 1)
-                    while (deck[random].type === 3) {
-                        random = Math.floor(Math.random() * deck.length - 1)
-                    }
-                    cards.push(deck[random])
-                    deck.splice(random, 1)
-                }
-                player2state.cards = cards
-                player2state.decks = deck
-                break;
+
+        const verifyLeaderAbility = function (leader) {
+            if (allCards[leader].name === 'Francesca, Daisy of The Valley') {
+                startCards = 11
+                state[playerId].faction.availableAbility = false
+            } else if (allCards[leader].name === 'Emhyr vas Emreis: The White Flame') {
+                state[opponentPlayerId].faction.availableAbility = false
+                state[playerId].faction.availableAbility = false
+            }
         }
     }
+
     function redraw(command) {
         const playerId = command.playerId
-        const cardToRedraw = command.card
-        switch (playerId) {
-            case player1state.id:
-                if (state.player1.redraws > 0) {
-                    let deck = player1state.decks
-                    let cards = player1state.cards
-                    let indexRedraw = cards.indexOf(cardToRedraw)
-                    cards.splice(indexRedraw, 1)
-                    player1state.discard.push(cardToRedraw)
-                    let random = Math.floor(Math.random() * deck.length - 1)
-                    let newCard = deck[random]
-                    deck.splice(random, 1)
-                    cards.push(newCard)
-                    player1state.cards = cards
-                    player1state.decks = deck
-                    player1state.redraws -= 1
-                }
-                break;
-            case player2state.id:
-                if (state.player1.redraws > 0) {
-                    let deck = player2state.decks
-                    let cards = player2state.cards
-                    let indexRedraw = cards.indexOf(cardToRedraw)
-                    cards.splice(indexRedraw, 1)
-                    player2state.discard.push(cardToRedraw)
-                    let random = Math.floor(Math.random() * deck.length - 1)
-                    let newCard = deck[random]
-                    deck.splice(random, 1)
-                    cards.push(newCard)
-                    player2state.cards = cards
-                    player2state.decks = deck
-                    player2state.redraws -= 1
-                }
-                break;
+        const cardToRedraw = command.card// raw name of the card
+        let newPlayerPrivate = playerPrivate
+        if (newPlayerPrivate[playerId].redraws > 0) {
+            let deck = playerPrivate[playerId].decks
+            let random = Math.floor(Math.random() * deck.length - 1)
+            newPlayerPrivate[playerId].cards.push(deck[random])
+            deck.splice(random, 1, cardToRedraw)
+            newPlayerPrivate[playerId].decks = deck
+            newPlayerPrivate[playerId].redraws -= 1
+            setState(newState)
+            setPlayerPrivate(newPlayerPrivate)
         }
     }
 
     function playCard(command) {
         const playerId = command.playerId
         const cardPlayed = command.cardPlayed
-        let cardIndex;
-        if (state.turn === playerId) {
-            switch (playerId) {
-                case player1state.id:
-                    cardIndex = player1state.cards.indexOf(cardPlayed)
-                    player1state.cards.splice(cardIndex, 1)
-                    state.table.player1.push(cardPlayed)
-                    break;
-                case player2state.id:
-                    cardIndex = player2State.cards.indexOf(cardPlayed)
-                    player2state.cards.splice(cardIndex, 1)
-                    state.table.player2.push(cardPlayed)
-                    break;
+        let typeBoost = command.type
+        let typeAgile = command.typeAgile
+        let typeWeather = command.typeWeather
+        let cardFromDiscard = command.cardFromDiscard
+        let cardsToDiscard = command.cardsToDiscard
+        let cardFromTable = command.cardFromTable
+        const opponentPlayerId = state.playersId.find(element => element != playerId)
+        let newState = state
+        let newPlayerPrivate = playerPrivate
+        let cardDetails = allCards[cardPlayed]
+        const play = () => {// objeto completo da carta
+            newState[playerId].table.push(cardPlayed)
+            let index = newPlayerPrivate[playerId].cards.indexOf(cardPlayed)
+            newPlayerPrivate[playerId].cards.splice(index, 1)
+        }
+        const verifyAbility = () => {
+            let abilityFunction = {
+                'agile': abilities.agile.onBeforePlace,
+                'medic': abilities.medic.onAfterPlace,
+                'muster': abilities.muster.onAfterPlace,
+                'spy': abilities.tight_bond.onAfterPlace,
+                'weather_fog': abilities.weather_fog.weather_fog,
+                'weather_rain': abilities.weather_rain.weather_rain,
+                'weather_frost': abilities.weather_frost.weather_frost,
+                'weather_clear': abilities.weather_clear.weather_clear,
+                'decoy': abilities.weather_decoy.decoy,
+                'scorch_card': abilities.scorch_card.scorch_card,
+                'scorch': abilities.scorch.scorch,
+                'foltest_leader1': abilities.foltest_leader1.onActivate,
+                'foltest_leader2': abilities.foltest_leader2.onActivate,
+                'foltest_leader3': abilities.foltest_leader3.onActivate,
+                'foltest_leader4': abilities.foltest_leader4.onActivate,
+                'francesca_leader1': abilities.francesca_leader1.onActivate,
+                'francesca_leader2': abilities.francesca_leader2.onActivate,
+                'francesca_leader4': abilities.francesca_leader4.onActivate,
+                'eredin_leader1': abilities.eredin_leader1.onActivate,
+                'eredin_leader2': abilities.eredin_leader2.onActivate,
+                'eredin_leader3': abilities.eredin_leader3.onActivate,
+                'eredin_leader4': abilities.eredin_leader4.onActivate,
+                'emreis_leader2': abilities.emreis_leader2.onActivate,
+                'emreis_leader3': abilities.emreis_leader3.onActivate,
+                'emreis_leader4': abilities.emreis_leader4.onActivate,
             }
-
+            let ability = cardDetails.abilities
+            if (ability.includes('agile')) {
+                cardDetails = abilityFunction.agile(typeAgile)
+                agile[cardPlayed] = cardDetails
+                play()
+            }
+            if (ability.includes('morale_boost')) {
+                play()
+                let valid = [0, 1, 2]
+                if (!newState[playerId].modifiers.morale_boost.includes(cardDetails.type) && valid.includes(cardDetails.type)) {
+                    newState[playerId].modifiers.morale_boost.push(cardDetails.type)
+                }
+            }
+            else if (ability.includes('weather')) {
+                newState = abilityFunction[ability](cardPlayed, newState)
+            }
+            else if (ability.includes('foltest_leader1') ||
+                ability.includes('foltest_leader2') ||
+                ability.includes('francesca_leader1') ||
+                ability.includes('emreis_leader2') ||
+                ability.includes('scorch_card')
+            ) {
+                newState = abilityFunction[ability](newState)
+            } else if (ability === 'commanders_horn_card') {
+                let valid = [0, 1, 2]
+                if (!newState[playerId].modifiers.command_horn.includes(typeBoost) && valid.includes(typeBoost)) {
+                    newState[playerId].modifiers.command_horn.push(typeBoost)
+                }
+            } else if (ability === 'commanders_horn') {
+                play()
+                let valid = [0, 1, 2]
+                if (!newState[playerId].modifiers.command_horn.includes(cardDetails.type) && valid.includes(cardDetails.type)) {
+                    newState[playerId].modifiers.command_horn.push(cardDetails.type)
+                }
+            } else if (ability === 'tight_bond') {
+                play()
+                let valid = [0, 1, 2]
+                if (!newState[playerId].modifiers.tight_bond.includes(cardDetails.type) && valid.includes(cardDetails.type)) {
+                    newState[playerId].modifiers.tight_bond.push(cardDetails.type)
+                }
+            } else if (ability === 'medic' || ability === 'eredin_leader2') {
+                if (ability === 'medic') {
+                    play()
+                }
+                let { discard, table } = abilityFunction[ability](cardFromDiscard,
+                    newState[playerId].discard, newState[playerId].table)
+                if (discard && table) {
+                    newState[playerId].discard = discard
+                    newState[playerId].table = table
+                }
+            } else if (ability === 'muster') {
+                play()
+                let { nState, nPrivatePlayer } = abilityFunction[ability](cardPlayed, newState, playerId, newPlayerPrivate)
+                newState = nState
+                newPlayerPrivate = nPrivatePlayer
+            } else if (ability === 'decoy') {
+                let { table, cards } = abilityFunction[ability](cardFromTable, newState[playerId].table, newPlayerPrivate[playerId].cards)
+                newState[playerId].table = table
+                newPlayerPrivate[playerId].cards = cards
+                play()
+            } else if (ability === 'spy') {
+                let { nState, nPlayerPrivate } = abilityFunction[ability](cardPlayed, newState, playerId, newPlayerPrivate)
+                newState = nState
+                newPlayerPrivate = nPlayerPrivate
+            } else if (ability === 'scorch' || ability === 'foltest_leader4' || ability === 'francesca_leader4') {
+                if (ability === 'scorch') {
+                    play()
+                }
+                let nState = abilityFunction[ability](newState, opponentPlayerId)
+                newState = nState
+            } else if (ability === 'francesca_leader2' || ability === 'foltest_leader3' || ability === 'eredin_leader1') {
+                let nState = abilityFunction[ability](newState, playerId)
+                newState = nState
+            } else if (ability === 'eredin_leader3') {
+                let { nState, nPlayerPrivate } = abilityFunction[ability](playerId, cardsToDiscard, cardFromDiscard, playerPrivate, state)
+                newState = nState
+                newPlayerPrivate = nPlayerPrivate
+            } else if (ability === 'eredin_leader4') {
+                let { nState } = abilityFunction[ability](typeWeather, state)
+                newState = nState
+            } else if (ability === 'emreis_leader4') {
+                let { nState, nPlayerPrivate } = abilityFunction[ability](cardFromDiscard, state, playerPrivate, playerId, opponentPlayerId)
+                newState = nState
+                newPlayerPrivate = nPlayerPrivate
+            } else if (ability === 'emreis_leader3') {
+                let { look } = abilityFunction[ability](playerPrivate[opponentPlayerId].cards)
+                newPlayerPrivate[playerId].look = look
+            }
         }
-        notifyAll({
-            type: 'play-card',
-            playerId: playerId,
-        })
+        if (ability === null) {
+            play()
+        } else {
+            verifyAbility()
+        }
+        setState(newState)
+        setPlayerPrivate(newPlayerPrivate)
+
     }
+    function roundEnd() {
 
-    function roundEnd() {//reduzir o power se tiver morale_boost
-        state.table.player1.map((i) => {
-            player1state.discard.push(i)
-        })
-        state.table.player2.map((i) => {
-            player2state.discard.push(i)
-        })
-        if (state.score.player1 > state.score.player2) {
-            state.rounds.player1 += 1
-        } else if (state.score.player2 > state.score.player1) {
-            state.rounds.player2 += 1
-        }
-        if (state.rounds.player1 >= 2) {
-            state.winner = state.players.player1.id
-        } else if (state.rounds.player2 >= 2) {
-            state.winner = state.players.player2.id
-        }
-
-        state.table.player1 = []
-        state.table.player2 = []
-        state.score.player1 = 0
-        state.score.player2 = 0
-        notifyAll({
-            type: 'round-end',
-            playerId: playerId,
-        })
     }
 
     function removePlayer(command) {
         const playerId = command.playerId
         if (player1state.id === playerId) {
-
             state.winner === player2state.id
         } else if (player2state.id === playerId) {
-
             state.winner === player1state.id
         }
         state.player1 = { id: null, name: null, score: 0, rounds: 0, active: false, table: [], redraws: 2, faction: null }
@@ -301,16 +409,13 @@ export default function createGame(room) {
         })
     }
 
-
-
     return {
         addPlayer,
         removePlayer,
         state,
+        playerPrivate,
         setState,
         subscribe,
-        player1state,
-        player2state,
         playCard,
         roundEnd,
         shuffleCards,

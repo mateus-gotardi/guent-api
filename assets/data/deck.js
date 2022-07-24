@@ -1,4 +1,4 @@
-module.exports = {
+const deck = {
 
   "northern": {
     faction: "northern",
@@ -192,3 +192,4 @@ module.exports = {
     ]
   }
 }
+export default deck

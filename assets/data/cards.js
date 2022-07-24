@@ -9,7 +9,7 @@
  */
 
 
-module.exports = {
+const cards = {
   "none": {
     name: "none",
     power: 0,
@@ -1119,3 +1119,4 @@ module.exports = {
 
 
 }
+export default cards
