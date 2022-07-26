@@ -192,4 +192,4 @@ const deck = {
     ]
   }
 }
-export default deck
+module.exports =  deck

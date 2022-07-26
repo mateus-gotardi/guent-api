@@ -1,4 +1,4 @@
-const allCards = import('./cards')
+const allCards = require('./cards')
 
 const abilities = {
 
@@ -414,4 +414,4 @@ const abilities = {
     description: "Hero: Not affected by special cards, weather cards or abilities."
   }
 }
-export default abilities;
+module.exports = abilities;

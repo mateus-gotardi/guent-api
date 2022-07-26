@@ -1,20 +1,8 @@
-const abilities = import('../assets/data/abilities')
-const allCards = import('../assets/data/cards')
-const Deck = import('../assets/data/deck')
+const abilities = require('../../assets/data/abilities')
+const allCards = require('../../assets/data/cards')
+const Deck = require ('../../assets/data/deck')
 export default function createGame(room) {
-    /*
-     const observers = []
- 
-     function subscribe(observerFunction) {
-         observers.push(observerFunction)
-     }
- 
-     function notifyAll(command) {
-         for (const observerFunction of observers) {
-             observerFunction(command)
-         }
-     }
- */
+
     const state = {
         weather_cards: [], // 0 1 and/or 2
         turn,
@@ -31,14 +19,14 @@ export default function createGame(room) {
         Object.assign(playerPrivate, newPlayerPrivate)
     }
     function addPlayer(command) {
-        const playerId = command.user._id
+        const playerId = command.userId
         const { name, decks } = command.user
         let newState = state
         let newPlayerPrivate = playerPrivate
-        if (newState.length < 8) {
+        if (newState.playersId.length < 2) {
             newState[playerId] = {
                 name: name,
-                active: true,
+                endTurn: false,
                 ready: false,
                 score: { total: 0, closeCombat: 0, ranged: 0, siege: 0 },
                 rounds,
@@ -69,7 +57,10 @@ export default function createGame(room) {
         let siegeUnits = 0
         let tableWithScore = {}
         const hasDuplicates = (array) => {
-            return (new Set(array)).size !== array.length;
+            let duplicates = array.filter(function(value, index, arr){ 
+                return value === cardPlayed;
+            });
+            return (duplicates)
         }
 
         state.playersId.map((player) => {
@@ -159,7 +150,13 @@ export default function createGame(room) {
                 closeCombat: meleeScore, ranged: rangedScore, siege: siegeScore
             }
             state[player].units = { closeCombat: meleeUnits, ranged: rangedUnits, siege: siegeUnits }
+            if (state[player].cards.length <= 0 && !state[player].endTurn) {
+                state[player].endTurn = true
+            }
         })
+        if (state[state.playersId[0]].endTurn && state[state.playersId[1]].endTurn) {
+            roundEnd()
+        }
     }
     function shuffleCards(command) {
         const playerId = command.playerId
@@ -386,27 +383,52 @@ export default function createGame(room) {
         }
         setState(newState)
         setPlayerPrivate(newPlayerPrivate)
-
+        verifyScore()
+    }
+    function endTurn(command) {
+        let playerId = command.playerId
+        let newState = state
+        newState[playerId].endTurn = true
+        setState(newState)
     }
     function roundEnd() {
-
+        if (state[state.playersId[0]].score.total > state[state.playersId[1]].score.total) {
+            state[state.playersId[0]].rounds += 1
+        } else if (state[state.playersId[0]].score.total < state[state.playersId[1]].score.total) {
+            state[state.playersId[1]].rounds += 1
+        } else if (state[state.playersId[0]].score.total === state[state.playersId[1]].score.total) {
+            state[state.playersId[0]].rounds += 1
+            state[state.playersId[1]].rounds += 1
+        }
+        state.playersId.map((id) => {
+            state[id].table.map((card) => {
+                state[id].discard.push(card)
+            })
+            state[id].table = []
+            state[id].tableDetails = {}
+            state[id].agile = {}
+            state[id].endTurn = false
+            state[id].modifiers = {
+                morale_boost: [],
+                tight_bond: [],
+                command_horn: [],
+            }
+        })
+        if (state[state.playersId[0]].rounds >= 2 && state[state.playersId[1]].rounds < 2) {
+            state.winner = state.playersId[0]
+        } else if (state[state.playersId[1]].rounds >= 2 && state[state.playersId[0]].rounds < 2) {
+            state.winner = state.playersId[1]
+        } else if (state[state.playersId[1]].rounds >= 2 && state[state.playersId[0]].rounds >= 2) {
+            state.winner = 'draw'
+        }
     }
 
     function removePlayer(command) {
         const playerId = command.playerId
-        if (player1state.id === playerId) {
-            state.winner === player2state.id
-        } else if (player2state.id === playerId) {
-            state.winner === player1state.id
-        }
-        state.player1 = { id: null, name: null, score: 0, rounds: 0, active: false, table: [], redraws: 2, faction: null }
-        state.player2 = { id: null, name: null, score: 0, rounds: 0, active: false, table: [], redraws: 2, faction: null }
-        player2state.id = null
-        player1state.id = null
-        notifyAll({
-            type: 'remove-player',
-            playerId: playerId
-        })
+        let index = state.playersId.indexOf(playerId)
+        state.playersId.splice(index, 1)
+        delete state[playerId]
+        delete playerPrivate[playerId]
     }
 
     return {
@@ -414,11 +436,10 @@ export default function createGame(room) {
         removePlayer,
         state,
         playerPrivate,
-        setState,
-        subscribe,
         playCard,
         roundEnd,
         shuffleCards,
-        redraw
+        redraw,
+        endTurn
     }
 }
