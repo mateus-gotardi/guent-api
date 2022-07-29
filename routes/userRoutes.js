@@ -20,8 +20,7 @@ userRoutes.post('/login', async (req, res) => {
                         res.status(200).json(
                             {
                                 message: 'user logged in successfully',
-                                user: { name: user.name, email: user.email, id: user._id },
-                                decks: user.decks
+                                user: { name: user.name, email: user.email, id: user._id, decks: user.decks, victories: user.victories },
                             }
                         )
                     }
@@ -49,6 +48,7 @@ userRoutes.post('/register', async (req, res) => {
                     name: req.body.name,
                     email: req.body.email,
                     password: hashedPassword,
+                    victories: 0,
                 })
                 await user.save()
                 res.status(201).json({ success: true, message: 'User saved successfully' })
@@ -75,12 +75,19 @@ userRoutes.put('/update', WithAuth, async (req, res) => {
             if (!same) {
                 res.status(401).json({ error: 'incorrect password' })
             } else {
-                const hashedPassword = await bcrypt.hash(newPassword, 10)
-                user.password = hashedPassword
-                user.email = newEmail
-                user.name = newName
+
+                if (newPassword) {
+                    const hashedPassword = await bcrypt.hash(newPassword, 10)
+                    user.password = hashedPassword
+                }
+                if (newEmail) {
+                    user.email = newEmail
+                }
+                if (newName) {
+                    user.name = newName
+                }
                 await user.save()
-                res.status(200).json(user)
+                res.status(200).json({ user: { name: user.name, email: user.email, id: user._id, decks: user.decks } })
             }
         })
     }

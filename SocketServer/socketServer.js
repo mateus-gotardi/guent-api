@@ -1,24 +1,38 @@
-import createGame from "./index"
-const server = require('../server.js')
-const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
-const io = require('socket.io')(server, { cors: { origin: "*" } })
-const rooms = {}
+const express = require('express');
+const app = express();
+const http = require('http');
+const {Server} = require('socket.io')
+const cors = require('cors');
+const createGame = require('../src/game/index')
+
+app.use(cors())
+
+const server = http.createServer(app);
+
+const io =new Server(server, {
+    cors:{
+        origin: "http://localhost:3000"
+    }
+})
+
+server.listen('3002',()=>{
+    console.log('socket listening on http://localhost:3002')
+})
+
+let rooms = {}
 function createRoom(roomID) {
     rooms[roomID] = createGame(roomID)
 }
 
-io.use(wrap(session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false
-})));
-
 io.on('connection', async (socket) => {
-    const userId = socket.request.session.login;
-    const room = socket.request.session.room;
+    console.log('socket connected:'+socket.id);
+    let userId, room
     const setup = (state, playerState) => {
+        let opponentId = rooms[room].playersId.find(i => i !== playerId)
+        let opponentState = rooms[room].playerPrivate[opponentId]
         socket.to(room).emit('state', { state })
         socket.to(userId).emit('playerState', { playerState })
+        socket.to(opponentId).emit('playerState', { opponentState })
     }
     socket.on("connect_error", (err) => {
         console.log(err.message);
@@ -27,6 +41,7 @@ io.on('connection', async (socket) => {
         let roomID = command.room;
         if (!rooms[roomID]) {
             createRoom(roomID)
+            room = roomID
         }
         if (rooms[roomID].state.playersId.length < 2) {
             rooms[roomID].addPlayer(command)
@@ -52,18 +67,18 @@ io.on('connection', async (socket) => {
             let playerState = rooms[room].playerPrivate[userId]
             setup(state, playerState)
         } else {
-            socket.to(userId).emit('error', 'you do not have any redraws available' )
+            socket.to(userId).emit('error', 'you do not have any redraws available')
         }
     })
     socket.on('end-turn', async (command) => {
         command.playerId = userId
-        rooms[room].endTur(command)
+        rooms[room].endTurn(command)
         let state = rooms[room].state
         let playerState = rooms[room].playerPrivate[userId]
         setup(state, playerState)
     })
     socket.on('round-end', async (command) => {
-        rooms[room].roundEnd
+        rooms[room].roundEnd()
         let state = rooms[room].state
         let playerState = rooms[room].playerPrivate[userId]
         setup(state, playerState)
@@ -82,8 +97,16 @@ io.on('connection', async (socket) => {
         let state = rooms[room].state
         setup(state)
     })
-    socket.on('end-game', ()=>{
+    socket.on('end-game', async () => {
+        let winner = rooms[room].state.winner
+        const user = await User.findById(winner)
+        user.victories += 1
+        user.markModified('victories')
+        await user.save();
         delete rooms[room]
         socket.request.session.room = undefined
+        setup
     })
 })
+
+module.exports = io

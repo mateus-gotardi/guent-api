@@ -10,8 +10,9 @@ const userSchema = new mongoose.Schema({
     password: String,
     decks: {
         type: Object,
-        default: { northern: {type : Array}, nilfgaardian: {type : Array}, scoiatael: {type : Array}, monster: {type : Array} }
+        default: {monster: [], scoiatael: [], nilfgaardian: [], northern: []}
     },
+    victories: Number,
     created_at: { type: Date, default: Date.now },
     updated_at: { type: Date, default: Date.now }
 })
