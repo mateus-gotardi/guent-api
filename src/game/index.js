@@ -5,7 +5,7 @@ function createGame(room) {
 
     const state = {
         weather_cards: [], // 0 1 and/or 2
-        turn,
+        turn: null,
         room: room,
         winner: null,
         playersId: [],
@@ -19,8 +19,8 @@ function createGame(room) {
         Object.assign(playerPrivate, newPlayerPrivate)
     }
     function addPlayer(command) {
-        const playerId = command.userId
-        const { name, decks } = command.user
+        const playerId = command.user.id
+        const { name, decks  } = command.user
         let newState = state
         let newPlayerPrivate = playerPrivate
         if (newState.playersId.length < 2) {
@@ -29,13 +29,13 @@ function createGame(room) {
                 endTurn: false,
                 ready: false,
                 score: { total: 0, closeCombat: 0, ranged: 0, siege: 0 },
-                rounds,
+                rounds: 0,
                 units: { closeCombat: 0, ranged: 0, siege: 0 },
                 table: [],
                 tableDetails: {},
                 agile: {},
                 discard: [],
-                faction: { faction, leader, availableAbility: true },
+                faction: { faction: '', leader: '', availableAbility: true },
                 modifiers: {
                     morale_boost: [],// example [0,2] corresponds to morale boost for close combat and siege
                     tight_bond: [],
@@ -46,6 +46,7 @@ function createGame(room) {
             newPlayerPrivate[playerId] = { cards: [], decks: decks, redraws: 2 }
             setState(newState)
             setPlayerPrivate(newPlayerPrivate)
+            console.log('player '+newState[playerId].name+ ' connected to room '+ room)
         }
     }
     function verifyScore() {
