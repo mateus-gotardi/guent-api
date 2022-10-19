@@ -5,41 +5,40 @@ const User = require('../schemas/User')
 const WithAuth = require('../middlewares/users')
 
 userRoutes.post('/login', async (req, res) => {
-    if (!req.session.login) {
-        const { email, password } = req.body
-        try {
-            let user = await User.findOne({ email })
-            if (!user) {
-                res.status(401).json({ error: 'incorrect email or password' })
-            } else {
-                user.isCorrectPassword(password, function (err, same) {
-                    if (!same) {
-                        res.status(401).json({ error: 'incorrect email or password' })
-                    } else {
-                        req.session.login = user._id
-                        res.status(200).json(
-                            {
-                                message: 'user logged in successfully',
-                                user: { name: user.name, email: user.email, id: user._id, decks: user.decks, victories: user.victories },
-                            }
-                        )
-                    }
-                })
-            }
-        } catch (error) {
-            res.status(500).json({ error })
+    // if (!req.session.login) {
+    const { email, password } = req.body
+    try {
+        let user = await User.findOne({ email })
+        if (!user) {
+            res.status(401).json({ error: 'incorrect email or password' })
+        } else {
+            user.isCorrectPassword(password, function (err, same) {
+                if (!same) {
+                    res.status(401).json({ error: 'incorrect email or password' })
+                } else {
+                    //req.session.login = user._id
+                    res.status(200).json(
+                        {
+                            message: 'user logged in successfully',
+                            user: { name: user.name, email: user.email, id: user._id, decks: user.decks, victories: user.victories },
+                        }
+                    )
+                }
+            })
         }
-    } else {
-        res.status(401).json({ error: 'user already logged in' })
+    } catch (error) {
+        res.status(500).json({ error })
     }
+    /*  } else {
+          res.status(401).json({ error: 'user already logged in' })
+      }*/
 })
 userRoutes.get('/logout', async (req, res) => {
-    req.session.login = null
     res.status(200).json({ message: 'logged out' })
 })
 
 userRoutes.post('/register', async (req, res) => {
-    if (!req.session.login) {
+    //if (!req.session.login) {
         const checkEmail = await User.findOne({ email: req.body.email })
         if (!checkEmail) {
             try {
@@ -59,9 +58,9 @@ userRoutes.post('/register', async (req, res) => {
             res.status(401)
                 .json({ error: 'this email already exists' })
         }
-    } else {
+   /* } else {
         res.status(401).json({ error: 'user already logged in' })
-    }
+    }*/
 })
 
 userRoutes.put('/update', WithAuth, async (req, res) => {
